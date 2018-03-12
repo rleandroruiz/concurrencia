@@ -3,12 +3,23 @@
 #include <vector>
 #include <ctime>
 #include <mutex>
+#include "timer.h"
+#include "msg_queue.h"
+
+
 //#include <condition_variable>
 
 using namespace std;
 
 mutex pantalla;
 //condition_variable mut;
+
+typedef struct{
+    int inicio;
+    int fin;
+} par;
+
+msg_queue<par> mensaje;
 
 void tarea(int inicio, int fin);
 
@@ -22,13 +33,8 @@ void sleep(int s) {
     }
 }
 
-void hola() {
 
-    for (int i = 0; i < 5; i++) {
-        std::cout << "Hola " << i << std::endl;
-        sleep(2);
-    }
-}
+void tarea();
 
 
 bool esPrimo(unsigned int num) {
@@ -36,35 +42,53 @@ bool esPrimo(unsigned int num) {
         if (num % i == 0)
             return false;
 
-
     return true;
 }
 
-#define CANT_HILOS 30
+#define CANT_HILOS 8
+#define INTERVALO 500
 
 int main() {
-    vector<thread> h;
+    thread *h[CANT_HILOS];
+    timer tiempo;
+    par dato;
     unsigned int inicio = 2;
     unsigned int fin = 300000;
     unsigned int intervalo = (fin - inicio) / CANT_HILOS;
 
     //lock_guard<mutex> lk(pantalla);
 
-    for (int j = 0; j < CANT_HILOS; j++) {
-        h.emplace_back(tarea, inicio + intervalo * j, inicio + intervalo * (j + 1) - 1);
-    }
-    for (auto &actual : h)
-        actual.join();
-    //mut.notify_one();
 
+    for (int j = 0; j < CANT_HILOS; j++) {
+        h[j] = new thread (tarea);
+    }
+    for(int i = 0; i < CANT_HILOS; i = i + INTERVALO){
+        dato.inicio = i;
+        dato.inicio = i + INTERVALO - 1;
+        mensaje.enqueue(dato);
+    }
+
+    tiempo.begin();
+    for (auto &actual : h)
+        actual->join();
+    //mut.notify_one();
+    tiempo.end();
+
+    tiempo.show();
 
     return 0;
 }
 
-void tarea(int inicio, int fin) {
+void tarea() {
+    par dato;
+
+
+    dato = mensaje.dequeue();
+
     //unique_lock<mutex> lk(pantalla);
 
-    for (int i = inicio; i < fin; i++)
+
+    for (int i = dato.inicio; i < dato.fin; i++)
         if (esPrimo(i)) {
             pantalla.lock();
             std::cout << i << std::endl;

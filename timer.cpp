@@ -4,4 +4,14 @@
 
 #include "timer.h"
 
+void timer::begin(){
+    inicio = clock();
+}
 
+void timer::end(){
+    fin = clock();
+}
+
+void timer::show(){
+    std::cout << "El tiempo es: " << fin - inicio << std::endl;
+}

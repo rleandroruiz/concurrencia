@@ -2,8 +2,13 @@
 #include <thread>
 #include <vector>
 #include <ctime>
+#include <mutex>
+//#include <condition_variable>
 
 using namespace std;
+
+mutex pantalla;
+//condition_variable mut;
 
 void tarea(int inicio, int fin);
 
@@ -35,7 +40,7 @@ bool esPrimo(unsigned int num) {
     return true;
 }
 
-#define CANT_HILOS 3
+#define CANT_HILOS 30
 
 int main() {
     vector<thread> h;
@@ -43,19 +48,26 @@ int main() {
     unsigned int fin = 300000;
     unsigned int intervalo = (fin - inicio) / CANT_HILOS;
 
+    //lock_guard<mutex> lk(pantalla);
+
     for (int j = 0; j < CANT_HILOS; j++) {
         h.emplace_back(tarea, inicio + intervalo * j, inicio + intervalo * (j + 1) - 1);
     }
     for (auto &actual : h)
         actual.join();
+    //mut.notify_one();
 
 
     return 0;
 }
 
 void tarea(int inicio, int fin) {
-    for (int i = inicio; i < fin; i++)
-        if (esPrimo(i))
-            std::cout << i << std::endl;
+    //unique_lock<mutex> lk(pantalla);
 
+    for (int i = inicio; i < fin; i++)
+        if (esPrimo(i)) {
+            pantalla.lock();
+            std::cout << i << std::endl;
+            pantalla.unlock();
+        }
 }
